@@ -123,7 +123,7 @@ object Util extends Build {
     name := "util-core",
     libraryDependencies ++= Seq(
       "com.twitter.common" % "objectsize" % "0.0.10" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.10.0" % "test"
+      "org.scalacheck" %% "scalacheck" % "1.10.1" % "test"
     ),
     resourceGenerators in Compile <+=
       (resourceManaged in Compile, name, version) map { (dir, name, ver) =>
