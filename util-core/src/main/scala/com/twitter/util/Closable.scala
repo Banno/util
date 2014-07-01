@@ -48,7 +48,7 @@ object Closable {
    * resource ''n+1'' is not closed until resource ''n'' is.
    */
   def sequence(closables: Closable*): Closable = new Closable {
-    private final def closeSeq(deadline: Time, closables: Seq[Closable]): Future[Unit] = 
+    private final def closeSeq(deadline: Time, closables: Seq[Closable]): Future[Unit] =
       closables match {
         case Seq() => Future.Done
         case Seq(hd, tl@_*) => hd.close(deadline) flatMap { _ => closeSeq(deadline, tl) }
@@ -61,46 +61,65 @@ object Closable {
   val nop: Closable = new Closable {
     def close(deadline: Time) = Future.Done
   }
-  
+
   /** Make a new Closable whose close method invokes f. */
   def make(f: Time => Future[Unit]): Closable = new Closable {
     def close(deadline: Time) = f(deadline)
   }
-  
+
   def ref(r: AtomicReference[Closable]): Closable = new Closable {
     def close(deadline: Time) = r.getAndSet(nop).close(deadline)
   }
-  
+
   private val refs = new HashMap[Reference[Object], Closable]
   private val refq = new ReferenceQueue[Object]
 
   private val collectorThread = new Thread("CollectClosables") {
     override def run() {
-      while(true) {
-        try {
-          val ref = refq.remove()
-          val closable = refs.synchronized(refs.remove(ref))
-          if (closable != null)
-            closable.close()
-          ref.clear()
-        } catch {
-          case _: InterruptedException =>
-            // Thread interrupted while blocked on `refq.remove()`. Daemon
-            // threads shouldn't be interrupted explicitly on `System.exit`, but
-            // SBT does it anyway.
-            logger.log(Level.FINE,
-              "com.twitter.util.Closable collector thread caught InterruptedException")
+// <<<<<<< HEAD
+//       while(true) {
+//         try {
+//           val ref = refq.remove()
+//           val closable = refs.synchronized(refs.remove(ref))
+//           if (closable != null)
+//             closable.close()
+//           ref.clear()
+//         } catch {
+//           case _: InterruptedException =>
+//             // Thread interrupted while blocked on `refq.remove()`. Daemon
+//             // threads shouldn't be interrupted explicitly on `System.exit`, but
+//             // SBT does it anyway.
+//             logger.log(Level.FINE,
+//               "com.twitter.util.Closable collector thread caught InterruptedException")
 
-          case NonFatal(exc) =>
-            logger.log(Level.SEVERE,
-              "com.twitter.util.Closable collector thread caught exception", exc)
+//           case NonFatal(exc) =>
+//             logger.log(Level.SEVERE,
+//               "com.twitter.util.Closable collector thread caught exception", exc)
 
-          case fatal =>
-            logger.log(Level.SEVERE,
-              "com.twitter.util.Closable collector thread threw fatal exception", fatal)
-            throw fatal
+//           case fatal =>
+//             logger.log(Level.SEVERE,
+//               "com.twitter.util.Closable collector thread threw fatal exception", fatal)
+//             throw fatal
+// =======
+        while(true) {
+          try {
+            val ref = refq.remove()
+            val closable = refs.synchronized(refs.remove(ref))
+            if (closable != null)
+              closable.close()
+            ref.clear()
+          } catch {
+            case NonFatal(exc) =>
+              Logger.getLogger("").log(Level.SEVERE,
+                "com.twitter.util.Closable collector threw exception", exc)
+            case fatal: Throwable =>
+              Logger.getLogger("").log(Level.SEVERE,
+                "com.twitter.util.Closable collector fatal threw exception", fatal)
+              throw fatal
+          }
+// >>>>>>> 4b78f69d0b5ea50e63f197cafcf46d16335f74b6
         }
-      }
+      // }
     }
 
     setDaemon(true)

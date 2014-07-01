@@ -296,7 +296,7 @@ class Flags(argv0: String, includeGlobal: Boolean) {
   def this(argv0: String) = this(argv0, false)
 
   private[this] val flags = new HashMap[String, Flag[_]]
-  
+
   @volatile private[this] var cmdUsage = ""
 
   // Add a help flag by default

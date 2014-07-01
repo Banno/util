@@ -9,6 +9,7 @@ import org.mockito.Mockito.{never, verify, when}
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.scalatest.WordSpec
+
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.mock.MockitoSugar
 import scala.collection.JavaConverters._

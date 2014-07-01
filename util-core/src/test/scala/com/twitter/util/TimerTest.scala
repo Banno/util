@@ -18,6 +18,7 @@ import org.scalatest.time.{Span, Seconds}
 class TimerTest extends FunSuite with MockitoSugar {
 
   test("ThreadStoppingTimer should stop timers in a different thread") {
+    // For some reason proper type inference fails here.
     val executor = mock[ExecutorService]
     val underlying = mock[Timer]
     val timer = new ThreadStoppingTimer(underlying, executor)
@@ -76,7 +77,7 @@ class TimerTest extends FunSuite with MockitoSugar {
     timer.schedule(100.millis, 200.millis) {
       counter.incrementAndGet()
     }
-    eventually(Timeout(Span(4, Seconds))) { assert(counter.get() >= 2) }
+    eventually(timeout(Span(4, Seconds))) { assert(counter.get() >= 2) }
     timer.stop()
   }
 
@@ -86,7 +87,7 @@ class TimerTest extends FunSuite with MockitoSugar {
     timer.schedule(Time.now + 200.millis) {
       counter.incrementAndGet()
     }
-    eventually(Timeout(Span(4, Seconds))) { assert(counter.get() === 1) }
+    eventually(timeout(Span(4, Seconds))) { assert(counter.get() === 1) }
     timer.stop()
   }
 
@@ -114,7 +115,7 @@ class TimerTest extends FunSuite with MockitoSugar {
     }
 
     timer.schedule(Time.now) {
-      throw new scala.MatchError
+      throw new scala.MatchError(())
     }
 
     latch.await(30.seconds)
@@ -140,8 +141,13 @@ class TimerTest extends FunSuite with MockitoSugar {
     timer.schedule(Time.now + 20.millis) {
       counter.incrementAndGet()
     }
-    Thread.sleep(40.milliseconds.inMillis)
-    eventually(Timeout(Span(4, Seconds))) { assert(counter.get() == 1) }
+// <<<<<<< HEAD
+//     Thread.sleep(40.milliseconds.inMillis)
+//     eventually(Timeout(Span(4, Seconds))) { assert(counter.get() == 1) }
+// =======
+    Thread.sleep(40.milliseconds.inMilliseconds)
+    eventually(timeout(Span(4, Seconds))) { assert(counter.get() == 1) }
+// >>>>>>> 4b78f69d0b5ea50e63f197cafcf46d16335f74b6
     timer.stop()
   }
 

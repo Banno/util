@@ -25,7 +25,7 @@ import scala.collection.mutable.Buffer
 trait Var[+T] { self =>
   import Var.Observer
 
-  /** 
+  /**
    * Observe this Var. `f` is invoked each time the variable changes,
    * and synchronously with the first call to this method.
    */
@@ -48,7 +48,7 @@ trait Var[+T] { self =>
   @deprecated("Use changes (Event)", "6.8.2")
   def foreach(f: T => Unit) = observe(f)
 
-  /** 
+  /**
    * Create a derived variable by applying `f` to the contained
    * value.
    */
@@ -80,7 +80,7 @@ trait Var[+T] { self =>
     }
   }
 
-  def join[U](other: Var[U]): Var[(T, U)] = 
+  def join[U](other: Var[U]): Var[(T, U)] =
     for { t <- self; u <- other } yield (t, u)
 
   /**
@@ -99,14 +99,13 @@ trait Var[+T] { self =>
    * Event.
    */
   lazy val changes: Event[T] = new Event[T] {
-    def register(s: Witness[T]) = 
-      self observe { newv => s.notify(newv) }
+    def register(s: Witness[T]) = observe(0, Observer(newv => s.notify(newv)))
   }
 
   /**
    * A one-shot predicate observation. The returned future
    * is satisfied with the first observed value of Var that obtains
-   * the predicate `pred`. Observation stops when the future is 
+   * the predicate `pred`. Observation stops when the future is
    * satisfied.
    *
    * Interrupting the future will also satisfy the future (with the
@@ -119,9 +118,9 @@ trait Var[+T] { self =>
       case exc => p.updateIfEmpty(Throw(exc))
     }
 
-    val o = observe { 
+    val o = observe {
       case el if pred(el) => p.updateIfEmpty(Return(el))
-      case _ => 
+      case _ =>
     }
 
     p ensure {
@@ -140,7 +139,7 @@ object Var {
   private[util] class Observer[-T](observe: T => Unit) {
     private[this] var thisOwner: AnyRef = null
     private[this] var thisVersion = Long.MinValue
-    
+
     /**
      * Claim this observer with owner `newOwner`. Claiming
      * an observer gives the owner exclusive rights to publish
@@ -152,7 +151,7 @@ object Var {
         thisVersion = Long.MinValue
       }
     }
-    
+
     /**
      * Publish the given versioned value with the given owner.
      * If the owner is not current (because another has claimed
@@ -180,10 +179,10 @@ object Var {
    */
   def sample[T](v: Var[T]): T = {
     var opt: Option[T] = None
-    v.observe(v => opt = Some(v)).close()
+    v.observe(0, Observer(v => opt = Some(v))).close()
     opt.get
   }
-  
+
   object Sampled {
     def apply[T](v: T): Var[T] = value(v)
     def unapply[T](v: Var[T]): Option[T] = Some(sample(v))
@@ -221,7 +220,7 @@ object Var {
    */
   def value[T](v: T): Var[T] = Value(v)
 
-  /** 
+  /**
    * Collect a collection of Vars into a Var of collection.
    */
   def collect[T, CC[X] <: Traversable[X]](vars: CC[Var[T]])
@@ -249,7 +248,7 @@ object Var {
     var i = 0
     for (u <- vars) {
       val j = i
-      closes(j) = u observe { newj => publish(j, newj) }
+      closes(j) = u observe (0, Observer(newj => publish(j, newj)))
       i += 1
     }
 
@@ -299,7 +298,7 @@ object Var {
   def async[T](empty: T)(update: Updatable[T] => Closable): Var[T] = new Var[T] {
     import create._
     private var state: State[T] = Idle
-    
+
     private val closable = Closable.make { deadline =>
       synchronized {
         state match {
@@ -373,9 +372,9 @@ private object UpdatableVar {
   }
 }
 
-private class UpdatableVar[T](init: T) 
-    extends Var[T] 
-    with Updatable[T] 
+private class UpdatableVar[T](init: T)
+    extends Var[T]
+    with Updatable[T]
     with Extractable[T] {
   import UpdatableVar._
   import Var.Observer
@@ -383,7 +382,7 @@ private class UpdatableVar[T](init: T)
   private[this] val n = new AtomicLong(0)
   private[this] val state = new AtomicReference(
     State[T](init, 0, immutable.SortedSet.empty))
-  
+
   @tailrec
   private[this] def cas(next: State[T] => State[T]): State[T] = {
     val from = state.get
